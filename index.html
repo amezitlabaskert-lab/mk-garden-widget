@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mezítlábas Kert Master v12.1</title>
+    <title>Mezítlábas Kert Master v12.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
@@ -21,11 +21,8 @@
         .card-line { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
         .card-type-alert { background: #b91c1c; } .card-type-window { background: #2d6a4f; } .card-type-info { background: #6691b3; }
         .event-name { font-weight: 800; font-size: 16px; margin-bottom: 2px; color: #1e293b; line-height: 1.2; }
-        .event-range { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
         .event-msg { font-size: 14px; line-height: 1.45; color: #334155; }
-        .time-badge { display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 800; border-radius: 3px; margin-right: 5px; color: #fff; }
-        .type-szezon { background: #1e293b; } .time-urgent { background: #b91c1c; } .time-warning { background: #ea580c; } .time-soon { background: #64748b; }
-        .loc-btn { width: 100%; cursor: pointer; padding: 10px; font-size: 10px; font-weight: 800; border: none; background: #475569; color: white; text-transform: uppercase; margin-bottom: 5px; }
+        .loc-btn { width: 100%; cursor: pointer; padding: 10px; font-size: 10px; font-weight: 800; border: none; background: #475569; color: white; text-transform: uppercase; margin-bottom: 5px; border-radius: 4px; }
         .garden-footer { text-align: center; font-size: 10px; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.6; }
 
         /* IDŐJÁRÁS STÍLUSOK */
@@ -41,7 +38,6 @@
         .soil-label { font-size: 9px; font-weight: 800; color: #999; text-transform: uppercase; }
         .soil-val { font-size: 16px; font-weight: 800; display: block; margin-top: 2px; }
         .chart-container { height: 110px; border-top: 1px solid #f0f0f0; padding-top: 10px; margin-top: 5px; }
-        .weather-img { width: 45px; height: 45px; object-fit: contain; }
     </style>
 </head>
 <body>
@@ -85,7 +81,6 @@
             const lat = localStorage.getItem('garden-lat') || "47.5136";
             const lon = localStorage.getItem('garden-lon') || "19.3735";
             const isPers = !!localStorage.getItem('garden-lat');
-
             const data = await getSharedData(lat, lon);
 
             if (mode === 'GOMB') {
@@ -98,7 +93,7 @@
         }
 
         async function getSharedData(lat, lon) {
-            const cacheKey = `shared_v12_${lat}_${lon}`;
+            const cacheKey = `shared_v12_2_${lat}_${lon}`;
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 const p = JSON.parse(cached);
@@ -118,6 +113,7 @@
             return full;
         }
 
+        // --- KERTFIGYELŐ SEGÉDFÜGGVÉNYEK ---
         function checkCondition(f, idx, key, val, dry) {
             const d = f.daily;
             if (key === 'temp_max_below') return d.temperature_2m_max[idx] <= val;
@@ -178,6 +174,7 @@
             initCarousels();
         }
 
+        // --- IDŐJÁRÁS MEGJELENÍTÉS ---
         function renderWeather(data, isPers) {
             const f = data.forecast, now = new Date();
             const hIdx = f.hourly.time.findIndex(t => new Date(t) > now) - 1;
@@ -201,15 +198,41 @@
             }
             document.getElementById('daily-grid-container').innerHTML = gridHtml;
 
-            const cData = new Array(12).fill(0);
-            data.histCurr.daily.precipitation_sum.forEach((r, i) => cData[new Date(data.histCurr.daily.time[i]).getMonth()] += (r||0));
-            new Chart(document.getElementById('finalChart'), {
-                type: 'bar', data: { labels: ['J','F','M','Á','M','J','J','A','S','O','N','D'], datasets: [{ data: cData, backgroundColor: '#3498db', borderRadius: 3 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } } }
+            // --- GRAFIKON ADATOK: IDEI ÉS TAVALYI ---
+            const monthLabels = ['Jan', 'Feb', 'Márc', 'Ápr', 'Máj', 'Jún', 'Júl', 'Aug', 'Szept', 'Okt', 'Nov', 'Dec'];
+            const curYear = new Array(12).fill(0);
+            const prevYear = new Array(12).fill(0);
+
+            data.histCurr.daily.precipitation_sum.forEach((r, i) => {
+                const m = new Date(data.histCurr.daily.time[i]).getMonth();
+                curYear[m] += (r || 0);
+            });
+            data.histPrev.daily.precipitation_sum.forEach((r, i) => {
+                const m = new Date(data.histPrev.daily.time[i]).getMonth();
+                prevYear[m] += (r || 0);
+            });
+
+            if (window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(document.getElementById('finalChart'), {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [
+                        { label: 'Tavaly', data: prevYear, backgroundColor: 'rgba(200, 200, 200, 0.4)', borderRadius: 2, barPercentage: 0.8 },
+                        { label: 'Idén', data: curYear, backgroundColor: '#3498db', borderRadius: 2, barPercentage: 0.8 }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } }
+                }
             });
             
-            document.getElementById('footer-left').innerText = isPers ? "CSAPADÉK A KERTEMBEN" : "ÉVES CSAPADÉK";
-            document.getElementById('footer-right').innerText = `IDÉN: ${Math.round(data.histCurr.daily.precipitation_sum.reduce((a,b)=>a+(b||0),0))} MM`;
+            const sumCur = Math.round(curYear.reduce((a,b)=>a+b, 0));
+            const sumPrev = Math.round(prevYear.reduce((a,b)=>a+b, 0));
+            document.getElementById('footer-left').innerText = isPers ? "ESŐ A KERTEMBEN" : "ÉVES CSAPADÉK";
+            document.getElementById('footer-right').innerText = `IDÉN: ${sumCur} MM | TAVALY: ${sumPrev} MM`;
         }
 
         function renderCarousel(items, id, dry) {
