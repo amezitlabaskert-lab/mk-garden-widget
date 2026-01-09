@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mezítlábas Kert Master v12.2</title>
+    <title>Mezítlábas Kert Master v12.4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; background: transparent; font-family: 'Plus Jakarta Sans', sans-serif; color: #636363; overflow: hidden; }
         .hidden { display: none !important; }
         
-        /* KERTFIGYELŐ STÍLUSOK */
-        .garden-main-card { background: #ffffff; padding: 18px; display: flex; flex-direction: column; box-sizing: border-box; min-height: 480px; height: auto; }
+        /* --- KERTFIGYELŐ STÍLUSOK (SZÖGLETES) --- */
+        .garden-main-card { background: #ffffff; padding: 18px; display: flex; flex-direction: column; box-sizing: border-box; min-height: 480px; height: auto; border-radius: 0; }
         .garden-title { font-family: 'Dancing Script', cursive; font-size: 3.2em; font-weight: 700; text-align: center; margin: 5px 0 12px 0; color: #1a1a1a; line-height: 1.1; }
         .section-title { font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 1.2px; margin: 12px 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #64748b; }
         .carousel-wrapper { position: relative; height: 140px; margin-bottom: 5px; overflow: hidden; }
@@ -22,11 +22,11 @@
         .card-type-alert { background: #b91c1c; } .card-type-window { background: #2d6a4f; } .card-type-info { background: #6691b3; }
         .event-name { font-weight: 800; font-size: 16px; margin-bottom: 2px; color: #1e293b; line-height: 1.2; }
         .event-msg { font-size: 14px; line-height: 1.45; color: #334155; }
-        .loc-btn { width: 100%; cursor: pointer; padding: 10px; font-size: 10px; font-weight: 800; border: none; background: #475569; color: white; text-transform: uppercase; margin-bottom: 5px; }
-        .garden-footer { text-align: center; font-size: 10px; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.6; }
+        .loc-btn { width: 100%; cursor: pointer; padding: 10px; font-size: 10px; font-weight: 800; border: none; background: #475569; color: white; text-transform: uppercase; margin-bottom: 5px; border-radius: 0; }
+        .garden-footer { text-align: center; font-size: 9px; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.7; line-height: 1.4; text-transform: uppercase; font-weight: 700; }
 
-        /* IDŐJÁRÁS STÍLUSOK */
-        .idojaras-widget { background: #ffffff; padding: 15px 20px; box-sizing: border-box; width: 100%; }
+        /* --- IDŐJÁRÁS STÍLUSOK --- */
+        .idojaras-widget { background: #ffffff; padding: 15px 20px; box-sizing: border-box; width: 100%; border-radius: 0; }
         .top-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
         .now-temp-text { font-size: 38px; font-weight: 800; letter-spacing: -1.5px; }
         .forecast-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex-grow: 1; }
@@ -65,14 +65,15 @@
                 <div class="soil-item"><span class="soil-label">Talajhő</span><span id="s6-val" class="soil-val">--°C</span></div>
             </div>
             <div class="chart-container"><canvas id="finalChart"></canvas></div>
-            <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:800; color:#999; padding-top:8px; text-transform:uppercase;">
-                <div id="footer-left">...</div>
-                <div id="footer-right">...</div>
+            <div style="display:flex; justify-content:space-between; font-size:9px; font-weight:800; color:#999; padding-top:8px; text-transform:uppercase;">
+                <div id="footer-left-weather">...</div>
+                <div id="footer-right-weather">...</div>
             </div>
         </div>
     </div>
 
     <script>
+        const APP_VERSION = "v12.4";
         const mode = window.location.hash.replace('#', '') || 'GOMB';
         const ICON_BASE = "https://basmilius.github.io/weather-icons/production/fill/all/";
         const WMO_MAP = { 0: { label: 'Derült', d: 'clear-day.svg', n: 'clear-night.svg' }, 1: { label: 'Derűs', d: 'partly-cloudy-day.svg', n: 'partly-cloudy-night.svg' }, 2: { label: 'Részben felhős', d: 'partly-cloudy-day.svg', n: 'partly-cloudy-night.svg' }, 3: { label: 'Borult', d: 'cloudy.svg', n: 'cloudy.svg' }, 45: { label: 'Ködös', d: 'fog.svg', n: 'fog.svg' }, 48: { label: 'Zúzmarás köd', d: 'fog.svg', n: 'fog.svg' }, 51: { label: 'Gyenge szitálás', d: 'drizzle.svg', n: 'drizzle.svg' }, 53: { label: 'Szitálás', d: 'drizzle.svg', n: 'drizzle.svg' }, 55: { label: 'Erős szitálás', d: 'drizzle.svg', n: 'drizzle.svg' }, 56: { label: 'Zúzmarás szitálás', d: 'drizzle.svg', n: 'drizzle.svg' }, 57: { label: 'Erős zúzmarás szitálás', d: 'drizzle.svg', n: 'drizzle.svg' }, 61: { label: 'Gyenge eső', d: 'rain.svg', n: 'rain.svg' }, 63: { label: 'Eső', d: 'rain.svg', n: 'rain.svg' }, 65: { label: 'Heves eső', d: 'extreme-rain.svg', n: 'extreme-rain.svg' }, 66: { label: 'Ónos eső', d: 'sleet.svg', n: 'sleet.svg' }, 67: { label: 'Erős ónos eső', d: 'sleet.svg', n: 'sleet.svg' }, 71: { label: 'Hószállingózás', d: 'snow.svg', n: 'snow.svg' }, 73: { label: 'Havazás', d: 'snow.svg', n: 'snow.svg' }, 75: { label: 'Erős havazás', d: 'extreme-snow.svg', n: 'extreme-snow.svg' }, 77: { label: 'Hószemcsék', d: 'snow.svg', n: 'snow.svg' }, 80: { label: 'Gyenge zápor', d: 'partly-cloudy-day-rain.svg', n: 'partly-cloudy-night-rain.svg' }, 81: { label: 'Zápor', d: 'rain.svg', n: 'rain.svg' }, 82: { label: 'Heves zápor', d: 'extreme-day-rain.svg', n: 'extreme-night-rain.svg' }, 85: { label: 'Hózápor', d: 'partly-cloudy-day-snow.svg', n: 'partly-cloudy-night-snow.svg' }, 86: { label: 'Heves hózápor', d: 'extreme-day-snow.svg', n: 'extreme-night-snow.svg' }, 95: { label: 'Zivatar', d: 'thunderstorms-day-rain.svg', n: 'thunderstorms-night-rain.svg' }, 96: { label: 'Zivatar jégesővel', d: 'thunderstorms-day-extreme.svg', n: 'thunderstorms-night-extreme.svg' }, 99: { label: 'Heves zivatar', d: 'thunderstorms-extreme-rain.svg', n: 'thunderstorms-extreme-rain.svg' } };
@@ -93,7 +94,7 @@
         }
 
         async function getSharedData(lat, lon) {
-            const cacheKey = `shared_v12_2_${lat}_${lon}`;
+            const cacheKey = `shared_v12_4_${lat}_${lon}`;
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 const p = JSON.parse(cached);
@@ -113,7 +114,6 @@
             return full;
         }
 
-        // --- KERTFIGYELŐ SEGÉDFÜGGVÉNYEK ---
         function checkCondition(f, idx, key, val, dry) {
             const d = f.daily;
             if (key === 'temp_max_below') return d.temperature_2m_max[idx] <= val;
@@ -162,6 +162,8 @@
             });
 
             const alerts = results.filter(r => r.type === 'alert'), others = results.filter(r => r.type !== 'alert');
+            const locName = isPers ? "AZ ÉN KERTEM" : "A MEZÍTLÁBAS KERT BÁZISA";
+            const updateTime = new Date(data.ts).toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
 
             document.getElementById('kertfigyelo-root').innerHTML = `
                 <div class="garden-main-card">
@@ -169,12 +171,14 @@
                     <button class="loc-btn" onclick="toggleLoc(${isPers})">${isPers ? 'Vissza az alaphoz' : 'Saját kertfigyelőt!'}</button>
                     <div class="section-title">Riasztások</div>${renderCarousel(alerts, 'alert', dryDays)}
                     <div class="section-title">Teendők & Info</div>${renderCarousel(others, 'task', dryDays)}
-                    <div class="garden-footer">Helyszín: ${isPers ? 'Az én kertem' : 'Bázis'} | Frissítve: ${new Date(data.ts).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</div>
+                    <div class="garden-footer">
+                        HELYSZÍN: ${locName}<br>
+                        FRISSÍTVE: ${updateTime} | ${APP_VERSION}
+                    </div>
                 </div>`;
             initCarousels();
         }
 
-        // --- IDŐJÁRÁS MEGJELENÍTÉS ---
         function renderWeather(data, isPers) {
             const f = data.forecast, now = new Date();
             const hIdx = f.hourly.time.findIndex(t => new Date(t) > now) - 1;
@@ -198,7 +202,6 @@
             }
             document.getElementById('daily-grid-container').innerHTML = gridHtml;
 
-            // --- GRAFIKON ADATOK: IDEI ÉS TAVALYI ---
             const monthLabels = ['Jan', 'Feb', 'Márc', 'Ápr', 'Máj', 'Jún', 'Júl', 'Aug', 'Szept', 'Okt', 'Nov', 'Dec'];
             const curYear = new Array(12).fill(0);
             const prevYear = new Array(12).fill(0);
@@ -218,8 +221,8 @@
                 data: {
                     labels: monthLabels,
                     datasets: [
-                        { label: 'Tavaly', data: prevYear, backgroundColor: 'rgba(200, 200, 200, 0.4)', borderRadius: 2, barPercentage: 0.8 },
-                        { label: 'Idén', data: curYear, backgroundColor: '#3498db', borderRadius: 2, barPercentage: 0.8 }
+                        { label: 'Tavaly', data: prevYear, backgroundColor: 'rgba(200, 200, 200, 0.4)', borderRadius: 0, barPercentage: 0.8 },
+                        { label: 'Idén', data: curYear, backgroundColor: '#3498db', borderRadius: 0, barPercentage: 0.8 }
                     ]
                 },
                 options: {
@@ -231,8 +234,9 @@
             
             const sumCur = Math.round(curYear.reduce((a,b)=>a+b, 0));
             const sumPrev = Math.round(prevYear.reduce((a,b)=>a+b, 0));
-            document.getElementById('footer-left').innerText = isPers ? "ESŐ A KERTEMBEN" : "ÉVES CSAPADÉK";
-            document.getElementById('footer-right').innerText = `IDÉN: ${sumCur} MM | TAVALY: ${sumPrev} MM`;
+            const kertNev = isPers ? "AZ ÉN KERTEMBEN" : "A MEZÍTLÁBAS KERTBEN";
+            document.getElementById('footer-left-weather').innerText = `ESŐ ${kertNev}`;
+            document.getElementById('footer-right-weather').innerText = `IDÉN: ${sumCur} | TAVALY: ${sumPrev} MM [${APP_VERSION}]`;
         }
 
         function renderCarousel(items, id, dry) {
